@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../store/auth";
 import { useRoom } from "../store/room";
@@ -6,6 +6,7 @@ import { useSyncPlayback } from "../hooks/useSyncPlayback";
 import PlayerCard from "../components/PlayerCard";
 import QueuePanel from "../components/QueuePanel";
 import MembersPanel from "../components/MembersPanel";
+import SongSearchModal from "../components/SongSearchModal";
 
 function PasswordModal({
   onClose,
@@ -63,6 +64,7 @@ export default function RoomPage() {
   const { user, ready, init } = useAuth();
   const room = useRoom();
   const [needPassword, setNeedPassword] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = useCallback((msg: string) => {
@@ -101,6 +103,11 @@ export default function RoomPage() {
   }, [room.lastError, room.clearError, navigate, showToast]);
 
   const isOwner = !!user && !!room.snapshot && user.id === room.snapshot.room.ownerId;
+
+  const queueSongIds = useMemo(
+    () => new Set(room.queue.map((e) => e.song.id)),
+    [room.queue]
+  );
 
   const { localPos, setLocalPos, localDuration, localSong, buffering, playLocal, seekLocal, setDragging } =
     useSyncPlayback(room.playback, room.mode, showToast);
@@ -143,6 +150,12 @@ export default function RoomPage() {
             {room.connected ? "已连接" : "连接中…"}
           </span>
         </div>
+        <button
+          onClick={() => setShowSearch(true)}
+          className="shrink-0 rounded-lg bg-sky-600 px-3 py-1.5 text-sm font-medium hover:bg-sky-500"
+        >
+          🎵 点歌
+        </button>
         {isOwner && room.snapshot && (
           <div className="flex shrink-0 items-center gap-2">
             <span className="text-xs text-slate-500">模式</span>
@@ -197,6 +210,14 @@ export default function RoomPage() {
           <MembersPanel members={room.members} myId={user?.id ?? null} />
         </div>
       </main>
+
+      {showSearch && (
+        <SongSearchModal
+          onClose={() => setShowSearch(false)}
+          onAdd={(songId) => room.addSong(songId)}
+          queueSongIds={queueSongIds}
+        />
+      )}
 
       {needPassword && (
         <PasswordModal
