@@ -1,12 +1,22 @@
 import Fastify from "fastify";
+import { Server } from "socket.io";
 import { config } from "./config.js";
 import { prisma } from "./prisma.js";
 import { redis } from "./redis.js";
 import { authRoutes } from "./routes/auth.js";
 import { roomRoutes } from "./routes/rooms.js";
 import { songRoutes } from "./routes/songs.js";
+import { initRoomServer } from "./ws/roomServer.js";
 
 const app = Fastify({ logger: true });
+
+// socket.io 与 Fastify 共用同一 HTTP 服务:
+// 生产环境 Caddy 把 /music-room/socket.io/* 剥前缀后转发到这里
+const io = new Server(app.server, {
+  path: "/socket.io",
+  serveClient: false,
+  cors: { origin: true },
+});
 
 // 请求级用户上下文:统一置 null,由认证 preHandler 填充(见 auth.ts)
 // 注意:Fastify 5 的钩子必须 async(或自行调用 next),同步箭头函数会让请求永久挂起
@@ -34,6 +44,7 @@ app.get("/api/health", async () => {
 authRoutes(app);
 roomRoutes(app);
 songRoutes(app);
+initRoomServer(io);
 
 const start = async () => {
   try {

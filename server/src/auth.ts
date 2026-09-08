@@ -30,6 +30,20 @@ function verifyToken(token: string): string | null {
   }
 }
 
+/** 由 token 直接取用户(WS 鉴权用) */
+export async function getUserByToken(token: string): Promise<AuthUser | null> {
+  const userId = verifyToken(token);
+  if (!userId) return null;
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return null;
+  return {
+    id: user.id,
+    nickname: user.nickname,
+    avatarUrl: user.avatarUrl,
+    isGuest: user.isGuest,
+  };
+}
+
 /** 解析 Bearer token → 用户;无效或缺失返回 null */
 export async function resolveUser(req: FastifyRequest): Promise<AuthUser | null> {
   const header = req.headers.authorization;
