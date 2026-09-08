@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+// Prisma 7: url 不再写在 schema 里,连接串统一在 prisma.config.ts 中配置
+datasource db {
+  provider = "postgresql"
+}
+
+// 用户:游客和注册用户同表,登录时升级绑定(isGuest → false)
+model User {
+  id           String   @id @default(cuid())
+  nickname     String
+  avatarUrl    String?
+  email        String?  @unique
+  passwordHash String?
+  authProvider String?
+  isGuest      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  rooms        Room[]       @relation("RoomOwner")
+  queueEntries QueueEntry[] @relation("RequestedBy")
+  songs        Song[]       @relation("UploadedBy")
+}
+
+model Room {
+  id           String   @id @default(cuid())
+  name         String
+  coverUrl     String?
+  ownerId      String
+  owner        User     @relation("RoomOwner", fields: [ownerId], references: [id])
+  mode         String   @default("sync") // sync | free
+  passwordHash String?
+  maxMembers   Int      @default(50)
+  status       String   @default("open") // open | closed
+  createdAt    DateTime @default(now())
+  closedAt     DateTime?
+
+  queueEntries QueueEntry[]
+  playHistory  PlayHistory[]
+}
+
+// 歌曲:网易云歌曲(sourceId)与本地上传(fileKey)统一入库,搜索聚合两类
+model Song {
+  id         String   @id @default(cuid())
+  title      String
+  artist     String
+  album      String?
+  durationMs Int
+  coverUrl   String?
+  source     String // netease | local
+  sourceId   String? // 网易云歌曲 ID
+  fileKey    String? // MinIO object key(本地歌曲)
+  lyric      String?
+  createdBy  String?
+  uploader   User?    @relation("UploadedBy", fields: [createdBy], references: [id])
+  createdAt  DateTime @default(now())
+
+  queueEntries QueueEntry[]
+  playHistory  PlayHistory[]
+
+  @@index([source, sourceId])
+}
+
+// 队列记录:Redis 为运行时视图,PG 为落盘记录/点播历史
+model QueueEntry {
+  id          String    @id @default(cuid())
+  roomId      String
+  room        Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  songId      String
+  song        Song      @relation(fields: [songId], references: [id])
+  requestedBy String
+  requester   User      @relation("RequestedBy", fields: [requestedBy], references: [id])
+  status      String    @default("queued") // queued | playing | played | skipped
+  requestedAt DateTime  @default(now())
+  playedAt    DateTime?
+
+  @@index([roomId, status])
+}
+
+model PlayHistory {
+  id       String   @id @default(cuid())
+  roomId   String
+  room     Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  songId   String
+  song     Song     @relation(fields: [songId], references: [id])
+  playedAt DateTime @default(now())
+}

@@ -5,6 +5,9 @@ node_modules/
 dist/
 build/
 
+# Prisma 生成代码(postinstall 时重新生成)
+server/src/generated/
+
 # 环境变量(密钥不进 git)
 .env
 .env.local
