@@ -2,9 +2,10 @@
 // 用法: node seed.mjs [入口地址,默认 http://localhost:8080/music-room]
 import { io } from "socket.io-client";
 
-const BASE = process.argv[2] ?? "http://localhost:8080/music-room";
-const API = `${BASE}/api`;
-const WS = BASE;
+// 入口:仅主机部分(如 http://localhost:8080),子路径 /music-room 由脚本拼接
+const HOST = process.argv[2] ?? "http://localhost:8080";
+const API = `${HOST}/music-room/api`;
+const WS_PATH = "/music-room/socket.io";
 
 async function api(path, opts = {}) {
   const { headers, ...rest } = opts;
@@ -46,12 +47,15 @@ async function main() {
   }
 
   // 4. WS 进房并点歌(第一首自动开播)
-  const sock = io(WS, {
+  const sock = io(HOST, {
     auth: { token: guest.token },
-    path: `${BASE}/socket.io`,
+    path: WS_PATH,
     transports: ["websocket"],
   });
-  await new Promise((r) => sock.on("connect", r));
+  await new Promise((resolve, reject) => {
+    sock.on("connect", resolve);
+    sock.on("connect_error", (e) => reject(new Error(`WS 连接失败: ${e.message}`)));
+  });
   sock.emit("room.join", { roomId });
   await new Promise((r) => sock.once("room.snapshot", r));
   for (const song of picked) {
@@ -61,7 +65,7 @@ async function main() {
   sock.disconnect();
 
   console.log(`演示房间已就绪:`);
-  console.log(`  入口: ${BASE}/room/${roomId}`);
+  console.log(`  入口: ${HOST}/music-room/room/${roomId}`);
   console.log(`  队列: ${picked.map((s) => s.title).join(" / ")}`);
 }
 
