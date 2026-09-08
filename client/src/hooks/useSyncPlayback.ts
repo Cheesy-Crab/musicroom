@@ -30,6 +30,20 @@ export function useSyncPlayback(
     pbRef.current = playback;
   }, [playback]);
 
+  // 浏览器自动播放策略:首次打开页面时 play() 会被拦截且不再重试,
+  // 在用户第一次点击/触摸时补一次恢复播放
+  useEffect(() => {
+    const unlock = () => {
+      const sound = soundRef.current;
+      if (sound && pbRef.current?.playing && !sound.playing()) {
+        sound.play();
+      }
+      window.removeEventListener("pointerdown", unlock);
+    };
+    window.addEventListener("pointerdown", unlock);
+    return () => window.removeEventListener("pointerdown", unlock);
+  }, []);
+
   // 进度显示:本地 howler 播放时读 seek;同步模式无音频(加载失败)时按服务端状态推算
   useEffect(() => {
     const t = setInterval(() => {
