@@ -61,7 +61,7 @@ model Song {
   queueEntries QueueEntry[]
   playHistory  PlayHistory[]
 
-  @@index([source, sourceId])
+  @@unique([source, sourceId])
 }
 
 // 队列记录:Redis 为运行时视图,PG 为落盘记录/点播历史

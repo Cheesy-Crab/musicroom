@@ -4,6 +4,7 @@ import { prisma } from "./prisma.js";
 import { redis } from "./redis.js";
 import { authRoutes } from "./routes/auth.js";
 import { roomRoutes } from "./routes/rooms.js";
+import { songRoutes } from "./routes/songs.js";
 
 const app = Fastify({ logger: true });
 
@@ -32,6 +33,7 @@ app.get("/api/health", async () => {
 
 authRoutes(app);
 roomRoutes(app);
+songRoutes(app);
 
 const start = async () => {
   try {
