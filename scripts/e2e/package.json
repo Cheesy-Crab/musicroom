@@ -1,0 +1,14 @@
+{
+  "name": "musicroom-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "双浏览器端到端验证:两窗口进同一房间,验证同步播放与进度对齐",
+  "scripts": {
+    "test": "node e2e.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.57.0",
+    "socket.io-client": "^4.8.3"
+  }
+}
