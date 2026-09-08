@@ -1,0 +1,16 @@
+# 域名主站配置:点播室挂在 /music-room 子路径
+# handle_path 会剥掉 /music-room 前缀,后端看到的是 /api/* 与 /socket.io/*
+# 若域名已有主站在跑,把 handle_path 块合并进现有配置即可
+domain.com {
+	handle_path /music-room/* {
+		@backend path /api/* /socket.io/*
+		handle @backend {
+			reverse_proxy backend:3000
+		}
+		handle {
+			root * /srv/musicroom/client/dist
+			try_files {path} /index.html
+			file_server
+		}
+	}
+}

@@ -1,0 +1,11 @@
+# 构建上下文排除:减小镜像构建体积,避免密钥/产物进入镜像
+node_modules
+dist
+.git
+.env
+*.log
+.data
+.claude
+client/dist
+server/dist
+server/src/generated

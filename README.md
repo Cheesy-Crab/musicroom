@@ -40,3 +40,19 @@ cd client && npm install && npm run dev
 ```
 
 访问 http://localhost:5173/music-room/
+
+## 部署到服务器(domain.com/music-room)
+
+```bash
+# 服务器上(需要: Docker + 域名 A 记录已指向服务器 IP)
+git clone <仓库地址> && cd musicroom
+cp .env.example .env        # 修改 JWT_SECRET / 数据库密码 / MinIO 密钥!
+./deploy.sh                 # 构建 → 启动 → 迁移 → 健康检查
+```
+
+- Caddy 自动申请并续期 Let's Encrypt 证书,全站 HTTPS
+- 数据库迁移:`docker compose -f docker-compose.prod.yml exec backend npx prisma migrate deploy`
+- 日志:`docker compose -f docker-compose.prod.yml logs -f backend`
+- 备份:PG 每天 `pg_dump`,音频 `mc mirror`(见 DESIGN.md 14.6)
+- 大陆服务器必须先完成 ICP 备案(见 DESIGN.md 14.9)
+- 完整方案见 [DESIGN.md](DESIGN.md)
