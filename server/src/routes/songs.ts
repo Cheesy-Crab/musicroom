@@ -107,13 +107,13 @@ export function songRoutes(app: FastifyInstance) {
           return reply.code(404).send({ code: "NOT_FOUND", message: "歌曲信息缺失" });
         }
         try {
-          const url = await neteaseSongUrl(Number(song.sourceId));
-          if (!url) {
+          const playable = await neteaseSongUrl(Number(song.sourceId));
+          if (!playable) {
             return reply
               .code(403)
               .send({ code: "NO_PLAYABLE_URL", message: "该歌曲暂无播放版权" });
           }
-          return { url };
+          return playable;
         } catch (err) {
           req.log.error(err, "netease song url failed");
           return reply

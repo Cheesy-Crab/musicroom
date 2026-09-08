@@ -41,12 +41,18 @@ export async function neteaseCovers(ids: number[]): Promise<Map<number, string>>
   return map;
 }
 
-/** 实时拉取播放 URL;无版权/失败返回 null */
-export async function neteaseSongUrl(id: number): Promise<string | null> {
+/** 实时拉取播放 URL;无版权/失败返回 null。format 供客户端确定解码器(URL 无扩展名) */
+export async function neteaseSongUrl(
+  id: number
+): Promise<{ url: string; format: string } | null> {
   const res = await fetch(
     `${config.neteaseApiUrl}/song/url/v1?id=${id}&level=standard`
   );
   if (!res.ok) throw new Error(`netease url failed: ${res.status}`);
-  const data = (await res.json()) as { data?: { url: string | null }[] };
-  return data.data?.[0]?.url ?? null;
+  const data = (await res.json()) as {
+    data?: { url: string | null; type?: string | null }[];
+  };
+  const item = data.data?.[0];
+  if (!item?.url) return null;
+  return { url: item.url, format: (item.type ?? "mp3").toLowerCase() };
 }
