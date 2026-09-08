@@ -1,0 +1,67 @@
+# 本地开发依赖服务:PostgreSQL / Redis / MinIO / 网易云API代理
+# 开发时后端和前端跑在宿主机(有热更新),只有依赖服务容器化
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: musicroom-pg
+    environment:
+      POSTGRES_USER: musicroom
+      POSTGRES_PASSWORD: musicroom_dev
+      POSTGRES_DB: musicroom
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U musicroom -d musicroom"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: musicroom-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: musicroom-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin_dev
+    ports:
+      - "9000:9000" # S3 API(后端用)
+      - "9001:9001" # Web 控制台(开发调试用)
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  netease-api:
+    image: binaryify/netease_cloud_music_api:latest
+    container_name: musicroom-netease
+    ports:
+      - "3001:3000" # 宿主机 3001 → 容器 3000(避开后端 3000)
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://localhost:3000/search?keywords=test || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
+  miniodata:
