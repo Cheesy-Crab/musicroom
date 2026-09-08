@@ -1,0 +1,11 @@
+# 本地部署覆盖:与 docker-compose.prod.yml 叠加使用
+# docker compose -f docker-compose.prod.yml -f docker-compose.local.yml up -d
+# 访问 http://localhost:8080/music-room/
+services:
+  caddy:
+    ports:
+      - "8080:80"
+    volumes:
+      - ./deploy/Caddyfile.local:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config

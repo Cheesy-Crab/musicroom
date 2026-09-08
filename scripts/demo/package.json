@@ -1,0 +1,13 @@
+{
+  "name": "musicroom-demo-seed",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "本地演示数据:创建欢迎房间并点可播放的歌",
+  "scripts": {
+    "seed": "node seed.mjs"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.8.3"
+  }
+}
