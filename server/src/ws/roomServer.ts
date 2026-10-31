@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../prisma.js";
 import { getUserByToken } from "../auth.js";
 import { verifyPassword } from "../lib/password.js";
+import { FixedWindowLimiter } from "../lib/rate-limit.js";
 import * as state from "./state.js";
 import {
   advance,
@@ -28,6 +29,12 @@ const modeSchema = z.object({ mode: z.enum(["sync", "free"]) });
 function err(socket: Socket, code: string, message: string): void {
   socket.emit("error", { code, message });
 }
+
+/** 房间密码重试限流:同一用户每分钟最多 5 次错误尝试,防止在线爆破。 */
+const joinPasswordLimiter = new FixedWindowLimiter({
+  limit: 5,
+  windowMs: 60_000,
+});
 
 export function initRoomServer(io: Server): void {
   // WS 鉴权:与 REST 共用 JWT(游客 token 同样有效)
@@ -85,9 +92,19 @@ async function handleJoin(
     return err(socket, "ROOM_NOT_FOUND", "房间不存在或已关闭");
   }
   if (room.passwordHash) {
+    const key = `join:${user.id}`;
+    const limit = joinPasswordLimiter.hit(key);
+    if (!limit.allowed) {
+      return err(
+        socket,
+        "RATE_LIMITED",
+        `尝试过于频繁,请 ${limit.retryAfterSeconds} 秒后再试`
+      );
+    }
     if (!password || !verifyPassword(password, room.passwordHash)) {
       return err(socket, "WRONG_PASSWORD", "房间密码错误");
     }
+    joinPasswordLimiter.reset(key);
   }
   const count = await state.memberCount(roomId);
   if (count >= room.maxMembers) return err(socket, "ROOM_FULL", "房间已满");

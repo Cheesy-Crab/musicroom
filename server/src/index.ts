@@ -8,14 +8,15 @@ import { roomRoutes } from "./routes/rooms.js";
 import { songRoutes } from "./routes/songs.js";
 import { initRoomServer } from "./ws/roomServer.js";
 
-const app = Fastify({ logger: true });
+// 部署在 Caddy 之后,跨域白名单见 config.corsOrigins;未配置时只允许同源
+const app = Fastify({ logger: true, trustProxy: true });
 
 // socket.io 与 Fastify 共用同一 HTTP 服务:
 // 生产环境 Caddy 把 /music-room/socket.io/* 剥前缀后转发到这里
 const io = new Server(app.server, {
   path: "/socket.io",
   serveClient: false,
-  cors: { origin: true },
+  cors: { origin: config.corsOrigins },
 });
 
 // 请求级用户上下文:统一置 null,由认证 preHandler 填充(见 auth.ts)
